@@ -1,0 +1,152 @@
+USE project;
+-- Basic Level:
+
+-- 1.	Retrieve all columns for the first 10 records in the dataset.
+SELECT * FROM ipl_ball_by_ball_2008_2022 LIMIT 10;
+
+-- 2.	List the unique batting teams present in the dataset.
+SELECT DISTINCT BattingTeam FROM ipl_ball_by_ball_2008_2022;
+
+-- 3.	Find the total number of wickets recorded in the dataset.
+SELECT COUNT(*) AS TotalWickets
+FROM ipl_ball_by_ball_2008_2022
+WHERE isWicketDelivery = 1;
+
+-- 4.	Display the details of deliveries where extras_run is greater than 1.
+SELECT * FROM ipl_ball_by_ball_2008_2022
+WHERE extras_run > 1;
+
+-- 5.	Retrieve the overs and ball numbers for the deliveries where a wicket was taken.
+SELECT innings, overs, ballnumber
+FROM ipl_ball_by_ball_2008_2022
+WHERE isWicketDelivery = 1;
+
+-- Intermediate Level:
+
+-- 6. Calculate the total runs scored by each batting team.
+SELECT BattingTeam, SUM(total_run) AS TotalRuns
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY BattingTeam ORDER BY TotalRuns DESC;
+
+-- 7.	List the top 5 bowlers with the most wickets.
+SELECT bowler, COUNT(*) AS Wickets
+FROM ipl_ball_by_ball_2008_2022
+WHERE isWicketDelivery = 1
+GROUP BY bowler ORDER BY Wickets DESC LIMIT 5;
+
+-- 8.	Find the average number of runs scored per over for each batting team.
+SELECT BattingTeam, AVG(total_run / (innings * 6 + ballnumber / 6.0)) AS AverageRunsPerOver
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY BattingTeam;
+
+-- 9.	Display the details of deliveries where the batsman_run is 6 (a six).
+SELECT * FROM ipl_ball_by_ball_2008_2022 WHERE batsman_run = 6;
+
+-- 10.	Identify the top 3 batsmen with the highest individual scores.
+SELECT batter, MAX(total_run) AS HighestIndividualScore
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY batter
+ORDER BY HighestIndividualScore DESC
+LIMIT 3;
+
+-- Advanced Level: 
+
+-- 11. Calculate the overall run rate for each inning.
+SELECT innings, SUM(total_run) AS TotalRuns, MAX(innings * 6 + ballnumber / 6.0) AS TotalOvers,
+       SUM(total_run) / MAX(innings * 6 + ballnumber / 6.0) AS RunRate
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY innings;
+
+-- 12.	Identify the batsman who has faced the most number of balls.
+SELECT batter, COUNT(*) AS BallsFaced
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY batter
+ORDER BY BallsFaced DESC
+LIMIT 1;
+
+-- 13.	List the bowler with the best bowling figures (wickets and runs conceded) in a single match.
+SELECT bowler, innings, MAX(isWicketDelivery) AS Wickets, MAX(total_run) AS RunsConceded
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY bowler, innings
+ORDER BY Wickets DESC, RunsConceded ASC
+LIMIT 1;
+
+-- 14.	Find the average number of extras (excluding wides and no-balls) per match.
+SELECT AVG(extras_run) AS AverageExtrasPerMatch
+FROM ipl_ball_by_ball_2008_2022
+WHERE extra_type NOT IN ('wides', 'noballs');
+
+-- 15.	Display the details of deliveries where a player was dismissed and fielders were involved.
+SELECT * FROM ipl_ball_by_ball_2008_2022
+WHERE isWicketDelivery = 1 AND fielders_involved IS NOT NULL;
+
+-- Expert Level: 
+-- 16. Calculate the strike rate for each batsman.
+SELECT batter, 
+       COUNT(*) AS BallsFaced,
+       SUM(batsman_run) AS RunsScored,
+       (SUM(batsman_run) / COUNT(*)) * 100 AS StrikeRate
+FROM ipl_ball_by_ball_2008_2022 WHERE batsman_run IS NOT NULL
+GROUP BY batter ORDER BY StrikeRate DESC;
+
+-- 17.	Identify the bowler who has bowled the maximum number of dot balls.
+SELECT bowler, COUNT(*) AS DotBalls
+FROM ipl_ball_by_ball_2008_2022 WHERE batsman_run = 0
+GROUP BY bowler ORDER BY DotBalls DESC LIMIT 1;
+
+-- 18.	List the players who have scored the most runs in a single over.
+SELECT batter, innings, overs, ballnumber, SUM(batsman_run) AS RunsInOver
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY batter, innings, overs, ballnumber
+HAVING COUNT(*) = 6
+ORDER BY RunsInOver DESC LIMIT 5;
+
+-- 19.	Calculate the percentage of runs scored through boundaries (fours and sixes) for each team.
+SELECT BattingTeam,
+       (SUM(CASE WHEN non_boundary = 0 THEN batsman_run ELSE 0 END) / SUM(total_run)) * 100 AS PercentageBoundaryRuns
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY BattingTeam;
+
+-- 20.	Identify the matches where a team scored more than 200 runs.
+SELECT *
+FROM (
+    SELECT innings, BattingTeam, SUM(total_run) AS TotalRuns
+    FROM ipl_ball_by_ball_2008_2022
+    GROUP BY innings, BattingTeam
+) AS TeamTotalRuns
+WHERE TotalRuns > 200;
+
+-- Challenge Level: 
+-- 21. Determine the number of deliveries bowled by each bowler in the dataset.
+SELECT bowler, COUNT(*) AS DeliveriesBowled
+FROM ipl_ball_by_ball_2008_2022
+GROUP BY bowler ORDER BY DeliveriesBowled DESC;
+
+-- 22.	Identify the batsman-bowler pairs with the highest partnership runs in a single match.
+SELECT batter, bowler, innings, SUM(total_run) AS PartnershipRuns
+FROM ipl_ball_by_ball_2008_2022 WHERE non_boundary = 0
+GROUP BY batter, bowler, innings
+ORDER BY PartnershipRuns DESC LIMIT 1;
+
+-- 23.	Calculate the average number of runs scored in the powerplay (first six overs) for each team.
+SELECT BattingTeam,
+       AVG(total_run) AS AveragePowerplayRuns
+FROM ipl_ball_by_ball_2008_2022
+WHERE overs <= 6 
+GROUP BY BattingTeam;
+
+-- 24.	List the matches where a team won by a margin of fewer than 10 runs or with fewer than 5 balls remaining.
+SELECT *
+FROM ipl_ball_by_ball_2008_2022
+WHERE (BattingTeam = 'TeamA' AND total_run - (SELECT total_run FROM ipl_ball_by_ball_2008_2022 WHERE BattingTeam = 'TeamB') < 10)
+   OR (BattingTeam = 'TeamB' AND total_run - (SELECT total_run FROM ipl_ball_by_ball_2008_2022 WHERE BattingTeam = 'TeamA') < 10)
+   OR (overs = 20 AND (6 - ballnumber) < 5);
+
+
+-- 25.	Create a ranking of players based on their overall performance, considering both batting and bowling statistics.
+SELECT batter, 
+       SUM(total_run) AS TotalRuns, 
+       SUM(isWicketDelivery) AS TotalWickets 
+FROM ipl_ball_by_ball_2008_2022 
+GROUP BY batter 
+ORDER BY (SUM(total_run) + SUM(isWicketDelivery)) DESC;
